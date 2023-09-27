@@ -1,91 +1,149 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Doctor, DoctorDocument } from './schema/doctor.schema';
+import {
+  Category,
+  CategoryDocument,
+} from 'src/categories/schema/category.schema';
+import { UpdateDoctorDto } from './dto/UpdateDoctorData.dto';
+import { CreateDoctorDto } from './dto/CreateDoctorData.dto';
+import * as uuid from 'uuid'; // Import uuid
+import { Booking, BookingDocument } from 'src/booking/schema/booking.schema';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class DoctorsService {
-    CategoryModel: any;
+  constructor(
+    @InjectModel(Doctor.name) private doctorModel: Model<DoctorDocument>,
+    @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
+    @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
+  ) {}
 
-    constructor(@InjectModel(Doctor.name) private DoctorModel: Model<DoctorDocument>) { }
+  async createDoctor(doctorData: CreateDoctorDto): Promise<DoctorDocument> {
+    const {
+      name,
+      email,
+      password,
+      categoryId,
+      medicalSpecialty,
+      certificateImages,
+      rating,
+      bookingPrice,
+      discount,
+    } = doctorData;
 
+    // Fetch the Category document based on the categoryId
+    const category = await this.categoryModel.findById(categoryId);
 
-    async createDoctor(doctorData: any): Promise<DoctorDocument> {
-        const { name, categoryId, medicalSpecialty, Certificates, rating, bookingPrice, discount } = doctorData
+    if (!category)
+      throw new NotFoundException('No Category with the given ID.');
 
-        const createdDoctor = await this.DoctorModel.create({
-            name,
-            category: categoryId,
-            medicalSpecialty,
-            Certificates,
-            rating,
-            bookingPrice,
-            discount,
-        })
+    const certificateFilenames = certificateImages.map((Certificate) => {
+      const uniqueFilename = `${uuid.v4()}_${Certificate.filename}`;
+      return uniqueFilename;
+    });
 
-        return createdDoctor;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const createdDoctor = await this.doctorModel.create({
+      name,
+      email,
+      password: hashedPassword,
+      category: categoryId,
+      medicalSpecialty,
+      certificateImages: certificateFilenames,
+      rating,
+      bookingPrice,
+      discount,
+    });
+
+    return createdDoctor;
+  }
+
+  async getDoctors(): Promise<DoctorDocument[]> {
+    const Categories = await this.doctorModel.find();
+
+    return Categories;
+  }
+
+  async showDoctor(id: string): Promise<DoctorDocument> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid product ID.');
     }
 
+    const doctor = await this.doctorModel.findById(id);
 
-    async getDoctors(): Promise<DoctorDocument[]> {
-        const Categories = await this.DoctorModel.find()
+    if (!doctor) throw new NotFoundException('No Doctor with given ID.');
 
-        return Categories;
+    return doctor;
+  }
+
+  async updateDoctor(id: string, doctorData: UpdateDoctorDto): Promise<any> {
+    const { categoryId } = doctorData;
+
+    if (!Types.ObjectId.isValid(id))
+      throw new BadRequestException('Invalid Doctor ID.');
+
+    // Fetch the Category document based on the categoryId
+    const category = await this.categoryModel.findById(categoryId);
+
+    if (!category)
+      throw new NotFoundException('No Category with the given ID.');
+
+    const Doctor = await this.doctorModel.findByIdAndUpdate(id, doctorData, {
+      new: true,
+    });
+
+    if (!Doctor) throw new NotFoundException('No Doctor with given ID.');
+
+    return Doctor;
+  }
+
+  async deleteDoctor(id: string): Promise<void> {
+    if (!Types.ObjectId.isValid(id))
+      throw new BadRequestException('Invalid Doctor ID.');
+
+    const Doctor = await this.doctorModel.findById(id);
+
+    if (!Doctor) throw new NotFoundException('No Doctor with given ID.');
+
+    await Doctor.deleteOne();
+  }
+
+  async listDoctorBooking(
+    doctorId: string,
+    date: Date,
+  ): Promise<BookingDocument[]> {
+    const myDoctorBooking = await this.bookingModel.find({
+      doctor: doctorId,
+      date,
+    });
+
+    return myDoctorBooking;
+  }
+
+  private async findDoctorById(doctorId: string): Promise<DoctorDocument> {
+    const doctor = await this.doctorModel.findById(doctorId);
+
+    if (!doctor) {
+      throw new NotFoundException('No Doctor with given ID.');
     }
 
+    return doctor;
+  }
 
-    async showDoctor(id: string): Promise<DoctorDocument> {
+  public async findDoctorByEmail(email: string): Promise<DoctorDocument> {
+    const doctor = await this.doctorModel.findOne({ email });
 
-        if (!Types.ObjectId.isValid(id)) {
-            throw new BadRequestException('Invalid product ID.');
-        }
-
-        const categoty = await this.DoctorModel.findById(id);
-
-        if (!categoty) throw new NotFoundException('No Doctor with given ID.');
-
-        return categoty;
+    if (!doctor) {
+      throw new NotFoundException('No Doctor with given email.');
     }
 
-
-    async updateDoctor(id: string, doctorData: Partial<DoctorDocument & { categoryId: string }>): Promise<DoctorDocument> {
-        const { name, categoryId, medicalSpecialty, Certificates, rating, bookingPrice, discount } = doctorData
-
-        if (!Types.ObjectId.isValid(id))
-            throw new BadRequestException('Invalid Doctor ID.');
-
-        const Doctor = await this.DoctorModel.findById(id);
-
-        if (!Doctor) throw new NotFoundException('No Doctor with given ID.');
-
-        // Fetch the Category document based on the categoryId
-        const category = await this.CategoryModel.findById(categoryId);
-
-        if (!category) throw new NotFoundException('No Category with the given ID.');
-
-        Doctor.name = name;
-        Doctor.category = category.id;
-        Doctor.medicalSpecialty = medicalSpecialty;
-        Doctor.Certificates = Certificates;
-        Doctor.rating = rating;
-        Doctor.bookingPrice = bookingPrice;
-        Doctor.discount = discount;
-
-        const updatedDoctor = await Doctor.save();
-
-        return updatedDoctor;
-
-    }
-
-    async deleteDoctor(id: string): Promise<void> {
-        if (!Types.ObjectId.isValid(id))
-            throw new BadRequestException('Invalid Doctor ID.');
-
-        const Doctor = await this.DoctorModel.findById(id);
-
-        if (!Doctor) throw new NotFoundException('No Doctor with given ID.');
-
-        await Doctor.deleteOne();
-    }
-
+    return doctor;
+  }
 }
