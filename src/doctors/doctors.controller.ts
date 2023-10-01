@@ -86,4 +86,21 @@ export class DoctorsController {
   ) {
     return this.doctorsService.listDoctorBooking(request.user._id, date);
   }
+
+  @Get('get-profit/:month/:year')
+  getBalanceMonthly(
+    @Request() request: AuthRequest,
+    @Param('month') month: string,
+    @Param('year') year: string,
+  ) {
+    return this.doctorsService.getBalanceMonthly(request.user._id, month, year);
+  }
+
+  @Get('get-profit/:year')
+  getBalanceYearly(
+    @Request() request: AuthRequest,
+    @Param('year') year: string,
+  ) {
+    return this.doctorsService.getBalanceYearly(request.user._id, year);
+  }
 }

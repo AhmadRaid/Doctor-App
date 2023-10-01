@@ -43,14 +43,35 @@ export class BookingController {
     return this.bookingService.deleteBooking(id);
   }
 
-  @Put('change-status-Data-booking/:bookingId')
-  setBookingStatusTypeAndPaid(
+  @Put('change-status/:bookingId')
+  setBookingStatus(
     @Param('bookingId') bookingId: string,
-    @Query() queryBooking: any,
+    @Body() newStatus: Record<string, string>,
   ) {
-    return this.bookingService.setBookingStatusTypeAndPaid(
-      bookingId,
-      queryBooking,
-    );
+    return this.bookingService.setBookingStatus(bookingId, newStatus);
+  }
+
+  @Put('change-type/:bookingId')
+  setBookingType(
+    @Param('bookingId') bookingId: string,
+    @Body() newType: Record<string, string>,
+  ) {
+    return this.bookingService.setBookingType(bookingId, newType);
+  }
+
+  @Put('change-paid/:bookingId')
+  setBookingPaid(
+    @Param('bookingId') bookingId: string,
+    @Body() newPaidStatus: Record<string, boolean>,
+  ) {
+    return this.bookingService.setBookingPaid(bookingId, newPaidStatus);
+  }
+
+  @Put('change-date/:bookingId')
+  setBookingDate(
+    @Param('bookingId') bookingId: string,
+    @Body() newDate: Record<string, string>,
+  ) {
+    return this.bookingService.setBookingDate(bookingId, newDate);
   }
 }

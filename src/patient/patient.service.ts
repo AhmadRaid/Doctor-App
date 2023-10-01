@@ -8,11 +8,13 @@ import { Patient, PatientDocument } from './schema/patient.schema';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { UpdatePatientDto } from './dto/UpdatePatientDto.dto';
+import { Booking, BookingDocument } from 'src/booking/schema/booking.schema';
 
 @Injectable()
 export class PatientService {
   constructor(
     @InjectModel(Patient.name) private patientModel: Model<PatientDocument>,
+    @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
   ) {}
 
   async createPatient(patientData: any): Promise<PatientDocument> {
@@ -119,5 +121,42 @@ export class PatientService {
     }
 
     return patient;
+  }
+
+  public async getTodayBooking(patientId: string): Promise<BookingDocument[]> {
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(currentDate.getDate()).padStart(2, '0');
+
+    const formattedCurrentDate = `${year}-${month}-${day}`;
+
+    const bookings = await this.bookingModel.find({
+      patient: patientId,
+      date: {
+        $eq: formattedCurrentDate,
+      },
+    });
+
+    return bookings;
+  }
+
+  public async getFutureBooking(patientId: string): Promise<BookingDocument[]> {
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(currentDate.getDate()).padStart(2, '0');
+
+    // Create the formatted date string
+    const formattedCurrentDate = `${year}-${month}-${day}`;
+
+    const bookings = await this.bookingModel.find({
+      patient: patientId,
+      date: {
+        $gt: formattedCurrentDate,
+      },
+    });
+
+    return bookings;
   }
 }

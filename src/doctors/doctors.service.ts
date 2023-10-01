@@ -146,4 +146,46 @@ export class DoctorsService {
 
     return doctor;
   }
+
+  public async getBalanceMonthly(
+    doctorId: string,
+    month: string,
+    year: string,
+  ) {
+    const regexMonthYear = `^${year}-${month}-`;
+
+    let sumProfit = 0;
+
+    const bookings = await this.bookingModel
+      .find({
+        doctor: doctorId,
+        date: { $regex: new RegExp(regexMonthYear, 'i') },
+      })
+      .exec();
+
+    bookings.forEach((booking: any) => {
+      sumProfit += booking.price;
+    });
+
+    return sumProfit;
+  }
+
+  public async getBalanceYearly(doctorId: string, year: string) {
+    const regexYear = `^${year}-`;
+
+    let sumProfit = 0;
+    const bookings = await this.bookingModel
+      .find({
+        doctor: doctorId,
+        date: { $regex: new RegExp(regexYear, 'i') },
+      })
+      .exec();
+
+    bookings.forEach((booking: any) => {
+      sumProfit += booking.price;
+      console.log(sumProfit);
+    });
+
+    return sumProfit;
+  }
 }

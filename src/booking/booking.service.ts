@@ -69,7 +69,14 @@ export class BookingService {
       date,
       status,
       type,
+      price: doctor.bookingPrice,
     });
+
+    // increase balance of doctor account
+    await doctor.updateOne(
+      { _id: doctor._id },
+      { $inc: { balance: +doctor.bookingPrice } },
+    );
 
     return createdBooking;
   }
@@ -97,11 +104,11 @@ export class BookingService {
 
     const total = await this.BookingModel.count().exec();
 
-    const data = await this.BookingModel.aggregate(pipeline).exec();
+    const Bookings = await this.BookingModel.aggregate(pipeline).exec();
 
     return {
       total,
-      data,
+      Bookings,
     };
   }
 
@@ -172,33 +179,149 @@ export class BookingService {
     await Booking.deleteOne();
   }
 
-  async setBookingStatusTypeAndPaid(
+  async setBookingStatus(
     bookingId: string,
-    paidStatus: any,
+    paidStatus: Record<string, string>,
   ): Promise<BookingDocument> {
-    const { Paid, Type, Status } = paidStatus;
+    try {
+      const { status } = paidStatus;
 
-    if (!Types.ObjectId.isValid(bookingId)) {
-      throw new BadRequestException('Invalid Booking ID.');
+      if (!Types.ObjectId.isValid(bookingId)) {
+        throw new BadRequestException('Invalid Booking ID.');
+      }
+
+      const updatedBooking = await this.BookingModel.findOneAndUpdate(
+        { _id: bookingId },
+        { $set: { status } },
+        { new: true, runValidators: true },
+      ).exec();
+
+      if (!updatedBooking) {
+        throw new NotFoundException('Booking not found');
+      }
+
+      return updatedBooking;
+    } catch (error) {
+      // Handle errors here
+      console.error(error);
+      throw error; // Rethrow the error for further handling, if needed
     }
+  }
 
-    const booking = await this.findBookingById(bookingId);
+  async setBookingType(
+    bookingId: string,
+    newType: Record<string, string>,
+  ): Promise<BookingDocument> {
+    const { type } = newType;
 
-    if (Paid) {
-      booking.paid = Paid;
+    try {
+      if (!Types.ObjectId.isValid(bookingId)) {
+        throw new BadRequestException('Invalid Booking ID.');
+      }
+
+      const updatedBooking = await this.BookingModel.findOneAndUpdate(
+        { _id: bookingId },
+        { $set: { type } },
+        { new: true, runValidators: true },
+      ).exec();
+
+      if (!updatedBooking) {
+        throw new NotFoundException('Booking not found after update.');
+      }
+
+      return updatedBooking;
+    } catch (error) {
+      // Handle errors here
+      console.error(error);
+      throw error; // Rethrow the error for further handling, if needed
     }
+  }
 
-    if (Type) {
-      booking.type = Type;
+  async setBookingPaid(
+    bookingId: string,
+    newPaidStatus: Record<string, boolean>,
+  ): Promise<BookingDocument> {
+    const { paid } = newPaidStatus;
+
+    try {
+      if (!Types.ObjectId.isValid(bookingId)) {
+        throw new BadRequestException('Invalid Booking ID.');
+      }
+
+      const updatedBooking = await this.BookingModel.findOneAndUpdate(
+        { _id: bookingId },
+        { $set: { paid } },
+        { new: true, runValidators: true },
+      ).exec();
+
+      if (!updatedBooking) {
+        throw new NotFoundException('Booking not found.');
+      }
+
+      return updatedBooking;
+    } catch (error) {
+      // Handle errors here
+      console.error(error);
+      throw error; // Rethrow the error for further handling, if needed
     }
+  }
 
-    if (Status) {
-      booking.status = Status;
+  async setBookingDate(
+    bookingId: string,
+    newDate: Record<string, string>,
+  ): Promise<BookingDocument> {
+    const { date } = newDate;
+
+    try {
+      if (!Types.ObjectId.isValid(bookingId)) {
+        throw new BadRequestException('Invalid Booking ID.');
+      }
+
+      const updatedBooking = await this.BookingModel.findOneAndUpdate(
+        { _id: bookingId },
+        { $set: { date } },
+        { new: true, runValidators: true },
+      ).exec();
+
+      if (!updatedBooking) {
+        throw new NotFoundException('Booking not found.');
+      }
+
+      return updatedBooking;
+    } catch (error) {
+      // Handle errors here
+      console.error(error);
+      throw error; // Rethrow the error for further handling, if needed
     }
+  }
 
-    await booking.save();
+  async setBookingTime(
+    bookingId: string,
+    newTime: any,
+  ): Promise<BookingDocument> {
+    const { time } = newTime;
 
-    return booking;
+    try {
+      if (!Types.ObjectId.isValid(bookingId)) {
+        throw new BadRequestException('Invalid Booking ID.');
+      }
+
+      const updatedBooking = await this.BookingModel.findOneAndUpdate(
+        { _id: bookingId },
+        { $set: { time } },
+        { new: true, runValidators: true },
+      ).exec();
+
+      if (!updatedBooking) {
+        throw new NotFoundException('Booking not found.');
+      }
+
+      return updatedBooking;
+    } catch (error) {
+      // Handle errors here
+      console.error(error);
+      throw error; // Rethrow the error for further handling, if needed
+    }
   }
 
   private async findBookingById(bookingId: string): Promise<BookingDocument> {
